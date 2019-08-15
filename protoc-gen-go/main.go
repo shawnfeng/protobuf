@@ -56,6 +56,7 @@ import (
 	"github.com/golang/protobuf/protoc-gen-go/generator"
 )
 
+//protoc -I ./ --go_out=plugins=grpc,omitempty=false:./report ./Report.proto
 func main() {
 	// Begin by allocating a generator. The request and response structures are stored there
 	// so we can do error handling easily - the response structure contains the field to
