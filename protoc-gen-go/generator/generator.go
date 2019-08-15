@@ -426,6 +426,7 @@ type Generator struct {
 	indent           string
 	pathType         pathType // How to generate output filenames.
 	writeOutput      bool
+	hasOmitempty     bool
 	annotateCode     bool                                       // whether to store annotations
 	annotations      []*descriptor.GeneratedCodeInfo_Annotation // annotations to store
 }
@@ -495,6 +496,10 @@ func (g *Generator) CommandLineParameters(parameter string) {
 		case "annotate_code":
 			if v == "true" {
 				g.annotateCode = true
+			}
+		case "omitempty":
+			if v == "true" {
+				g.hasOmitempty = true
 			}
 		default:
 			if len(k) > 0 && k[0] == 'M' {
@@ -2195,6 +2200,7 @@ func (g *Generator) generateCommonMethods(mc *msgCtx) {
 func (g *Generator) generateMessage(message *Descriptor) {
 	topLevelFields := []topLevelField{}
 	oFields := make(map[int32]*oneofField)
+
 	// The full type name
 	typeName := message.TypeName()
 	// The full type name, CamelCased.
@@ -2240,7 +2246,12 @@ func (g *Generator) generateMessage(message *Descriptor) {
 		fieldName, fieldGetterName := ns[0], ns[1]
 		typename, wiretype := g.GoType(message, field)
 		jsonName := *field.Name
-		tag := fmt.Sprintf("protobuf:%s json:%q", g.goTag(message, field, wiretype), jsonName+",omitempty")
+		var tag string
+		if g.hasOmitempty {
+			tag = fmt.Sprintf("protobuf:%s json:%q", g.goTag(message, field, wiretype), jsonName+",omitempty")
+		} else {
+			tag = fmt.Sprintf("protobuf:%s json:%q", g.goTag(message, field, wiretype), jsonName)
+		}
 
 		oneof := field.OneofIndex != nil
 		if oneof && oFields[*field.OneofIndex] == nil {
@@ -2264,7 +2275,7 @@ func (g *Generator) generateMessage(message *Descriptor) {
 			of := oneofField{
 				fieldCommon: fieldCommon{
 					goName:     fname,
-					getterName: "Get"+fname,
+					getterName: "Get" + fname,
 					goType:     dname,
 					tags:       tag,
 					protoName:  odp.GetName(),
